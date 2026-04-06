@@ -34,20 +34,20 @@ function getMonthlyTrend(transactions) {
   });
 }
 
-// Active shape only expands the ring — labels are handled separately and never touched
+// Expands ring only — no text, so labels are never interrupted
 const renderActiveShape = (props) => {
   const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
   return (
     <g>
-      <Sector cx={cx} cy={cy} innerRadius={innerRadius} outerRadius={outerRadius + 10}
+      <Sector cx={cx} cy={cy} innerRadius={innerRadius} outerRadius={outerRadius + 8}
         startAngle={startAngle} endAngle={endAngle} fill={fill} />
-      <Sector cx={cx} cy={cy} innerRadius={outerRadius + 14} outerRadius={outerRadius + 18}
+      <Sector cx={cx} cy={cy} innerRadius={outerRadius + 12} outerRadius={outerRadius + 15}
         startAngle={startAngle} endAngle={endAngle} fill={fill} />
     </g>
   );
 };
 
-// Percentage labels — always rendered, never re-mounted by hover changes
+// Always-visible % labels inside slices
 const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, pct }) => {
   const RADIAN = Math.PI / 180;
   const r = innerRadius + (outerRadius - innerRadius) * 0.55;
@@ -84,21 +84,15 @@ export default function Overview() {
   const catData = getCategoryData(transactions);
   const trend = getMonthlyTrend(transactions);
 
-  const handleMouseEnter = (_, i) => {
-    setActiveIndex(i);
-    setHoveredData(catData[i]);
-  };
-  const handleMouseLeave = () => {
-    setActiveIndex(null);
-    setHoveredData(null);
-  };
+  const handleMouseEnter = (_, i) => { setActiveIndex(i); setHoveredData(catData[i]); };
+  const handleMouseLeave = () => { setActiveIndex(null); setHoveredData(null); };
 
   return (
     <div>
       <div className="page-header fade-in">
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <h1 className="page-title">Financial Overview</h1>
-          {role === "admin" && <span className="admin-badge">🔑 Admin</span>}
+          {role === "admin" && <span className="admin-badge">Admin</span>}
         </div>
         <p className="page-sub">Track your income, expenses and spending patterns</p>
       </div>
@@ -109,26 +103,23 @@ export default function Overview() {
           <div className="card-label">Net Balance</div>
           <div className="card-amount balance">{fmt(totalBalance)}</div>
           <div className="card-change">Across all months</div>
-          <span className="card-icon">⚖</span>
         </div>
         <div className="summary-card income fade-in fade-in-2">
           <div className="card-label">Total Income</div>
           <div className="card-amount income">{fmt(totalIncome)}</div>
           <div className="card-change">{transactions.filter(t => t.type === "income").length} transactions</div>
-          <span className="card-icon">↑</span>
         </div>
         <div className="summary-card expense fade-in fade-in-3">
           <div className="card-label">Total Expenses</div>
           <div className="card-amount expense">{fmt(totalExpenses)}</div>
           <div className="card-change">{transactions.filter(t => t.type === "expense").length} transactions</div>
-          <span className="card-icon">↓</span>
         </div>
       </div>
 
       {/* Charts */}
       <div className="charts-grid">
         <div className="chart-card fade-in">
-          <div className="chart-title">📈 Monthly Balance Trend</div>
+          <div className="chart-title">Monthly Balance Trend</div>
           <ResponsiveContainer width="100%" height={240}>
             <AreaChart data={trend} margin={{ top: 4, right: 10, left: 0, bottom: 0 }}>
               <defs>
@@ -157,13 +148,40 @@ export default function Overview() {
         </div>
 
         <div className="chart-card fade-in" style={{ display: "flex", flexDirection: "column" }}>
-          <div className="chart-title">🥧 Spending by Category</div>
+          <div className="chart-title">Spending by Category</div>
           {catData.length === 0 ? (
-            <div className="empty-state"><div className="empty-icon">📊</div><div className="empty-text">No expense data</div></div>
+            <div className="empty-state">
+              <div className="empty-text">No expense data</div>
+            </div>
           ) : (
             <>
-              {/* Hover info rendered as plain HTML above the chart — zero impact on SVG labels */}
-              <div style={{ minHeight: 52, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 2 }}>
+              {/* Pie chart first — expanded slice has full room above the info box */}
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+                  <Pie
+                    activeIndex={activeIndex}
+                    activeShape={renderActiveShape}
+                    data={catData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={80}
+                    dataKey="value"
+                    labelLine={false}
+                    label={renderCustomLabel}
+                    onMouseEnter={handleMouseEnter}
+                    onMouseLeave={handleMouseLeave}
+                    isAnimationActive={false}
+                  >
+                    {catData.map((entry, i) => (
+                      <Cell key={i} fill={CATEGORY_COLORS[entry.name] || "#888"} stroke="var(--surface)" strokeWidth={2} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+
+              {/* Info box below — never overlaps the chart */}
+              <div style={{ minHeight: 50, display: "flex", alignItems: "center", justifyContent: "center", borderTop: "1px solid var(--border)", paddingTop: 10, marginTop: 4 }}>
                 {hoveredData ? (
                   <div style={{ textAlign: "center" }}>
                     <div style={{ fontFamily: "Playfair Display, serif", fontWeight: 700, fontSize: "0.85rem", color: "var(--gold)" }}>
@@ -181,31 +199,8 @@ export default function Overview() {
                 )}
               </div>
 
-              <ResponsiveContainer width="100%" height={180}>
-                <PieChart>
-                  <Pie
-                    activeIndex={activeIndex}
-                    activeShape={renderActiveShape}
-                    data={catData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={46}
-                    outerRadius={78}
-                    dataKey="value"
-                    labelLine={false}
-                    label={renderCustomLabel}
-                    onMouseEnter={handleMouseEnter}
-                    onMouseLeave={handleMouseLeave}
-                    isAnimationActive={false}
-                  >
-                    {catData.map((entry, i) => (
-                      <Cell key={i} fill={CATEGORY_COLORS[entry.name] || "#888"} stroke="var(--surface)" strokeWidth={2} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", marginTop: 6, padding: "0 4px" }}>
+              {/* Legend */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", marginTop: 10, padding: "0 4px" }}>
                 {catData.slice(0, 6).map((d, i) => (
                   <div key={i}
                     style={{ display: "flex", alignItems: "center", gap: 5, fontSize: "0.73rem", color: "var(--text3)", cursor: "pointer" }}

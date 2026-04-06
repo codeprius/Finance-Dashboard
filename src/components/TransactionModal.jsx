@@ -29,7 +29,7 @@ export default function TransactionModal({ onClose, editTx }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
-        <div className="modal-title">{editTx ? "✏️ Edit Transaction" : "➕ Add Transaction"}</div>
+        <div className="modal-title">{editTx ? "Edit Transaction" : "Add Transaction"}</div>
         <div className="modal-grid">
           <div className="form-group">
             <label className="form-label">Description</label>

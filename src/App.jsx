@@ -8,6 +8,7 @@ import "./index.css";
 
 function Dashboard() {
   const [activePage, setActivePage] = useState("overview");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const renderPage = () => {
     if (activePage === "transactions") return <Transactions />;
@@ -16,8 +17,13 @@ function Dashboard() {
   };
 
   return (
-    <div className="app-shell">
-      <Sidebar activePage={activePage} setActivePage={setActivePage} />
+    <div className={`app-shell ${sidebarOpen ? "sidebar-expanded" : "sidebar-collapsed"}`}>
+      <Sidebar
+        activePage={activePage}
+        setActivePage={setActivePage}
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+      />
       <main className="main-content">{renderPage()}</main>
     </div>
   );

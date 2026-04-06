@@ -27,20 +27,19 @@ function getMonthCategoryData(transactions, monthKey) {
     }));
 }
 
-// Active shape only expands the ring — never touches label rendering
+// Ring expand only — labels unaffected
 const renderActiveShape = (props) => {
   const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
   return (
     <g>
       <Sector cx={cx} cy={cy} innerRadius={innerRadius} outerRadius={outerRadius + 8}
         startAngle={startAngle} endAngle={endAngle} fill={fill} />
-      <Sector cx={cx} cy={cy} innerRadius={outerRadius + 12} outerRadius={outerRadius + 16}
+      <Sector cx={cx} cy={cy} innerRadius={outerRadius + 12} outerRadius={outerRadius + 15}
         startAngle={startAngle} endAngle={endAngle} fill={fill} />
     </g>
   );
 };
 
-// Percentage labels — always stable, never affected by hover
 const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, pct }) => {
   const RADIAN = Math.PI / 180;
   const r = innerRadius + (outerRadius - innerRadius) * 0.55;
@@ -82,20 +81,43 @@ function MonthPieChart({ monthKey, label }) {
 
   if (data.length === 0) return (
     <div className="chart-card" style={{ textAlign: "center" }}>
-      <div className="chart-title">🗓 {label}</div>
-      <div className="empty-state"><div className="empty-icon">📊</div><div className="empty-text">No expenses</div></div>
+      <div className="chart-title">{label}</div>
+      <div className="empty-state"><div className="empty-text">No expenses</div></div>
     </div>
   );
 
   return (
     <div className="chart-card fade-in">
-      <div className="chart-title">🗓 {label}</div>
+      <div className="chart-title">{label}</div>
       <div style={{ fontSize: "0.78rem", color: "var(--text3)", marginBottom: 6 }}>
         Total spent: <span style={{ color: "var(--gold)", fontWeight: 700 }}>{fmt(total)}</span>
       </div>
 
-      {/* Hover info in HTML — completely outside SVG, zero label interference */}
-      <div style={{ minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 2 }}>
+      {/* Chart first — expanded slice has full room */}
+      <ResponsiveContainer width="100%" height={180}>
+        <PieChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+          <Pie
+            activeIndex={activeIdx}
+            activeShape={renderActiveShape}
+            data={data}
+            cx="50%" cy="50%"
+            innerRadius={42} outerRadius={70}
+            dataKey="value"
+            onMouseEnter={handleEnter}
+            onMouseLeave={handleLeave}
+            labelLine={false}
+            label={renderLabel}
+            isAnimationActive={false}
+          >
+            {data.map((entry, i) => (
+              <Cell key={i} fill={CATEGORY_COLORS[entry.name] || "#888"} stroke="var(--surface)" strokeWidth={2} />
+            ))}
+          </Pie>
+        </PieChart>
+      </ResponsiveContainer>
+
+      {/* Info box below chart */}
+      <div style={{ minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", borderTop: "1px solid var(--border)", paddingTop: 8, marginTop: 2 }}>
         {hoveredData ? (
           <div style={{ textAlign: "center" }}>
             <div style={{ fontFamily: "Playfair Display, serif", fontWeight: 700, fontSize: "0.8rem", color: "var(--gold)" }}>
@@ -113,29 +135,7 @@ function MonthPieChart({ monthKey, label }) {
         )}
       </div>
 
-      <ResponsiveContainer width="100%" height={170}>
-        <PieChart>
-          <Pie
-            activeIndex={activeIdx}
-            activeShape={renderActiveShape}
-            data={data}
-            cx="50%" cy="50%"
-            innerRadius={40} outerRadius={68}
-            dataKey="value"
-            onMouseEnter={handleEnter}
-            onMouseLeave={handleLeave}
-            labelLine={false}
-            label={renderLabel}
-            isAnimationActive={false}
-          >
-            {data.map((entry, i) => (
-              <Cell key={i} fill={CATEGORY_COLORS[entry.name] || "#888"} stroke="var(--surface)" strokeWidth={2} />
-            ))}
-          </Pie>
-        </PieChart>
-      </ResponsiveContainer>
-
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", marginTop: 4 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", marginTop: 8 }}>
         {data.map((d, i) => (
           <div key={i}
             style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "0.7rem", color: "var(--text3)", cursor: "pointer" }}
@@ -177,39 +177,39 @@ export default function Insights() {
 
       <div className="insights-grid fade-in">
         <div className="insight-card">
-          <div className="insight-title">🏆 Top Spending Category</div>
+          <div className="insight-title">Top Spending Category</div>
           <div className="insight-value">{topCat ? topCat[0] : "—"}</div>
           <div className="insight-sub">{topCat ? fmt(topCat[1]) + " total spent" : "No data"}</div>
         </div>
         <div className="insight-card">
-          <div className="insight-title">💰 Savings Rate</div>
+          <div className="insight-title">Savings Rate</div>
           <div className="insight-value">{savingsRate}%</div>
           <div className="insight-sub">Of total income saved</div>
         </div>
         <div className="insight-card">
-          <div className="insight-title">📅 Avg Monthly Spend</div>
+          <div className="insight-title">Avg Monthly Spend</div>
           <div className="insight-value">{fmt(avgMonthlyExp)}</div>
           <div className="insight-sub">Across 3 months tracked</div>
         </div>
         <div className="insight-card">
-          <div className="insight-title">📈 Highest Spend Month</div>
+          <div className="insight-title">Highest Spend Month</div>
           <div className="insight-value">{topMonth?.month || "—"}</div>
           <div className="insight-sub">{topMonth ? fmt(topMonth.expenses) + " in expenses" : "No data"}</div>
         </div>
         <div className="insight-card">
-          <div className="insight-title">✅ Total Income</div>
+          <div className="insight-title">Total Income</div>
           <div className="insight-value" style={{ color: "var(--green-light)" }}>{fmt(totalIncome)}</div>
           <div className="insight-sub">All income sources</div>
         </div>
         <div className="insight-card">
-          <div className="insight-title">📊 Expense Ratio</div>
+          <div className="insight-title">Expense Ratio</div>
           <div className="insight-value">{totalIncome > 0 ? ((totalExpenses / totalIncome) * 100).toFixed(1) : 0}%</div>
           <div className="insight-sub">Expenses vs Income</div>
         </div>
       </div>
 
       <div className="chart-card fade-in" style={{ marginBottom: 24 }}>
-        <div className="chart-title">📊 Monthly Comparison — Income vs Expenses vs Savings</div>
+        <div className="chart-title">Monthly Comparison — Income vs Expenses vs Savings</div>
         <ResponsiveContainer width="100%" height={240}>
           <BarChart data={monthStats} barGap={4} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
